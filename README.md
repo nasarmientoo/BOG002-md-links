@@ -15,6 +15,10 @@
 
 ***
 
+## 0. Diagrama de flujo
+![flowchart md - links](https://user-images.githubusercontent.com/72315710/120591979-aa3c7680-c402-11eb-8f38-cb9180d15b40.png)
+
+
 ## 1. Preámbulo
 
 [Markdown](https://es.wikipedia.org/wiki/Markdown) es un lenguaje de marcado
