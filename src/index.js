@@ -1,10 +1,10 @@
 const path = require('path');
 const fs = require('fs'); 
 const fsPromises = require('fs').promises;
+const markdownLinkExtractor = require('markdown-link-extractor');
 
-/* Función para  de ruta como directorio/archivo */
+/* Función de recolección de rutas con formato .md */
 let filesArray = []
-
 const getFiles = (route) =>{
     const absolutRoute = path.resolve(route);
     //console.log('[+]',absolutRoute)
@@ -27,16 +27,24 @@ const getFiles = (route) =>{
     return filesArray
 }
 
-   
-/* Función para leer los archivos encontrados */
-const readFiles = (files) => {
-    console.log(files)
-    files.map(function(path){
-        fs.promises.readFile(path,'utf8')
-        .then(data => console.log('[+]',path, data))
-        .catch(error => console.log('Error: ', error))
-    })
+/* Función de lectura de rutas .md recolectadas*/
+const readFiles = async (files) => {
+    const textPromise = files.map(function(path){
+        return (fs.promises.readFile(path,'utf8'))
+    });
+    const textArray = await Promise.all(textPromise);
+    const text = textArray.join();
+    return text
 }
 
-console.log(getFiles('src/example-directory'))
-//
+
+/*Función de recolección de los links en los archivos*/
+const getLinks = async (files) => {
+    const content = await readFiles(files)
+    const links = markdownLinkExtractor(content, true);
+    links.forEach(link => console.log(link))
+} 
+
+//console.log(getLinks(readFiles(getFiles('src/example-directory'))))
+//console.log(getFiles('src/example-directory'))
+getLinks(getFiles('README.md'))

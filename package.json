@@ -2,6 +2,7 @@
   "name": "md-links",
   "version": "0.1.0",
   "dependencies": {
-    "findit": "^2.0.0"
+    "findit": "^2.0.0",
+    "markdown-link-extractor": "^1.3.0"
   }
 }
