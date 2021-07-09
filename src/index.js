@@ -28,21 +28,23 @@ const getFiles = (route) =>{
 }
 
 /* Función de lectura de rutas .md recolectadas*/
-const readFiles = async (files) => {
+const readFiles = (files) => {
     const textPromise = files.map(function(path){
         return (fs.promises.readFile(path,'utf8'))
     });
-    const textArray = await Promise.all(textPromise);
-    const text = textArray.join();
-    return text
+    return Promise.all(textPromise).then((text) =>{
+        const a = text.join();
+        return a        
+    })
 }
 
 
 /*Función de recolección de los links en los archivos*/
-const getLinks = async (files) => {
-    const content = await readFiles(files)
-    const links = markdownLinkExtractor(content, true);
-    links.forEach(link => console.log(link))
+const getLinks = (files) => {
+    readFiles(files).then((content) =>{
+        const links = markdownLinkExtractor(content, true);
+        links.forEach(link => console.log(link))
+    })
 } 
 
 //console.log(getLinks(readFiles(getFiles('src/example-directory'))))
