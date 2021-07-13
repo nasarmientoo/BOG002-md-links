@@ -1,113 +1,102 @@
+// eslint-disable-file
 const path = require('path');
-const fs = require('fs'); 
+const fs = require('fs');
 const fsPromises = require('fs').promises;
 const markdownLinkExtractor = require('markdown-link-extractor');
-const axios = require('axios')
+const axios = require('axios');
+const { get } = require('http');
 
 /* Función de recolección de rutas con formato .md */
 let filesArray = []
-const getFiles = (route) =>{
+const getFiles = route => {
     const absolutRoute = path.resolve(route);
-    //console.log('[+]',absolutRoute)
-    if (fs.existsSync(absolutRoute) && fs.lstatSync(absolutRoute).isDirectory()){
+    if (fs.existsSync(absolutRoute) && fs.lstatSync(absolutRoute).isDirectory()) {
         let files = fs.readdirSync(absolutRoute)
-        for( let file in files){
+        for (let file in files) {
             let nextFile = path.join(absolutRoute, files[file]);
-            if(path.extname(files[file]) === ".md"){
-                //console.log('[-]',path.resolve(absolutRoute,files[file]))
-                filesArray.push(path.resolve(absolutRoute,files[file]))
-            }   
-            if(fs.lstatSync(nextFile).isDirectory()){
-                getFiles(nextFile)
-            }
+            if (path.extname(files[file]) === ".md") {filesArray.push(path.resolve(absolutRoute, files[file]))}
+            if (fs.lstatSync(nextFile).isDirectory()) {getFiles(nextFile)}
         }
     }
-    if(fs.existsSync(absolutRoute) && path.extname(absolutRoute) === ".md"  ){
-        filesArray.push(absolutRoute)
-    }
+    if (fs.existsSync(absolutRoute) && path.extname(absolutRoute) === ".md") {filesArray.push(absolutRoute)}
     return filesArray
 }
 
 
 /* Función de lectura de rutas .md recolectadas*/
-const readFiles = async (files) => {
-    const textPromise = files.map(function(path){
-        return fs.promises.readFile(path,'utf8')
+const readFiles = files => {
+    const textPromise = files.map(function (path) {
+        return fs.promises.readFile(path, 'utf8')
     });
-    return Promise.all(textPromise).then((text) =>{
-        const propertiesArray = text.map((item,index)=>{
+    return Promise.all(textPromise).then(text => {
+        const propertiesArray = text.map((item, index) => {
             const object = {
                 text: item,
-                path: files[index]
+                file: files[index]
             }
-            return object  
+            return object
         })
         return propertiesArray
-    })   
+    })
 }
 
 /*Función de recolección de los links en los archivos*/
-const getLinks = async (files) => {
-    return readFiles(files).then((content) =>{
-        const fillFiles = content.filter(item => {
-            return item.text !== ''
-        })
-        const links = fillFiles.map(item => {
-            const linkDetails = markdownLinkExtractor(item.text, true);
-            const linksArray = []
-            linkDetails.forEach( link => {
-                if (link.href.startsWith('http')){
-                    const objectLink = {
-                        href: link.href,
-                        text: link.text,
-                        file: item.path
-                    }
-                    linksArray.push(objectLink)
+const getLinks = objectFilesArray => {
+    const fillFiles = objectFilesArray.filter(item => item.text !== '')
+    const links = fillFiles.flatMap(item => {
+        const linkDetails = markdownLinkExtractor(item.text, true);
+        const linskArray = linkDetails.map(link => {
+            if (link.href.startsWith('http')) {
+                return {
+                    href: link.href,
+                    text: link.text,
+                    file: item.file
                 }
-            });
-            return linksArray    
-        })
-        return links
+            }
+        });
+        return linskArray
     })
+    return links
 }
 
 /*Función de validación de los links recolectados*/
-const validateLinks = async (files) =>{
-    return getLinks(files).then(array =>{
-        return array.map( item => {
-            item.forEach(object =>{
-                const validateArray = []
-                return axios.get(object.href)
-                .then(response =>{
-                    const successObject = {
-                        href: object.href,
-                        text: object.text,
-                        file: object.file,
-                        status: response.status,
-                        statusText: 'ok'
-                    }
-                    validateArray.push(successObject) 
-                    return validateArray  
-                })
-                .catch(error =>{
-                    const failObject = {
-                        href: object.href,
-                        text: object.text,
-                        file: object.file,
-                        status: response.status,
-                        statusText: 'fail'
-                    }
-                    validateArray.push(failObject) 
-                    return validateArray
-                })
-           })         
-        })
+const validateLinks = files => {
+    return files.map(object => {
+        axios.get(object.href)
+            .then(response => {
+                return successObject = {
+                    ...object,
+                    status: response.status,
+                    statusText: 'ok'
+                }
+            })
+            .catch(error => {
+                return failObject = {
+                    ...object,
+                    status: error.response.status,
+                    statusText: 'fail'
+                }
+            })
     })
 }
 
-validateLinks(getFiles('src/example-directory'))
-
-module.exports = {
-    getFiles,
-    validateLinks
+/*Función de validación md -links */
+const mdLinks = (path,options = {validate:false}) => {
+    const files = getFiles(path)
+    return readFiles(files)
+    .then(getLinks)
+    .then(object =>{
+        if (options.validate){
+            validateLinks(object).then(data => {
+                console.log(data)
+            })
+        }
+        console.log('no estoy validando')
+    })
 }
+
+mdLinks('src/example-directory',{validate:true})
+
+/* module.exports = {
+    mdLinks
+} */
