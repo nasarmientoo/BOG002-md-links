@@ -4,7 +4,6 @@ const fs = require('fs');
 const fsPromises = require('fs').promises;
 const markdownLinkExtractor = require('markdown-link-extractor');
 const axios = require('axios');
-const { get } = require('http');
 
 /* Función de recolección de rutas con formato .md */
 let filesArray = []
@@ -40,29 +39,32 @@ const readFiles = files => {
     })
 }
 
+
 /*Función de recolección de los links en los archivos*/
 const getLinks = objectFilesArray => {
     const fillFiles = objectFilesArray.filter(item => item.text !== '')
     const links = fillFiles.flatMap(item => {
+        const linksArray = []
         const linkDetails = markdownLinkExtractor(item.text, true);
-        const linskArray = linkDetails.map(link => {
+        linkDetails.forEach(link => {
             if (link.href.startsWith('http')) {
-                return {
+                const objectLink = {
                     href: link.href,
                     text: link.text,
                     file: item.file
                 }
+                linksArray.push(objectLink)
             }
         });
-        return linskArray
+        return linksArray
     })
     return links
 }
 
 /*Función de validación de los links recolectados*/
 const validateLinks = files => {
-    return files.map(object => {
-        axios.get(object.href)
+    const axiosPromises = files.map(object => {
+        return axios.get(object.href)
             .then(response => {
                 return successObject = {
                     ...object,
@@ -78,6 +80,7 @@ const validateLinks = files => {
                 }
             })
     })
+    return Promise.all(axiosPromises)
 }
 
 /*Función de validación md -links */
@@ -87,16 +90,17 @@ const mdLinks = (path,options = {validate:false}) => {
     .then(getLinks)
     .then(object =>{
         if (options.validate){
-            validateLinks(object).then(data => {
-                console.log(data)
-            })
+            return validateLinks(object)
+        }else{
+            return object
         }
-        console.log('no estoy validando')
     })
+    .catch(() => {
+        return 'No se puede ejecutar Md-links'
+    })
+
 }
 
-mdLinks('src/example-directory',{validate:true})
+//mdLinks('README.md',{validate:true}).then(data => console.log(data))
 
-/* module.exports = {
-    mdLinks
-} */
+module.exports = {mdLinks} 
