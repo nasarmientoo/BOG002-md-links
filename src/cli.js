@@ -5,7 +5,6 @@ const yargs = require('yargs');
 const mdLinks = require('./index.js')
 
 const path = process.argv[2]
-console.log(chalk.yellow(path))
 
 const argv = yargs
     .usage('Usage: md-links <path to file> [options]')
